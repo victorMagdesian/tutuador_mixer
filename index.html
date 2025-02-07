@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guia de Mistura de Cores para Tatuadores</title>
+  <style>
+    /* Estilização geral da página */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #222;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    
+    .container {
+      background: #333;
+      padding: 20px 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    
+    h1 {
+      margin-bottom: 20px;
+    }
+    
+    p {
+      margin: 10px 0;
+    }
+    
+    input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      width: 200px;
+      border: 2px solid #555;
+      border-radius: 4px;
+      background: #222;
+      color: #eee;
+      margin-bottom: 10px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #555;
+      color: #eee;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background: #666;
+    }
+    
+    .result {
+      margin-top: 20px;
+      font-size: 18px;
+      line-height: 1.4;
+    }
+    
+    .result span {
+      font-weight: bold;
+    }
+    
+    /* Estilização para a matriz de cores */
+    .color-matrix {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .color-swatch {
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      border-radius: 4px;
+    }
+    
+    .color-swatch:hover {
+      border: 2px solid #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Guia de Mistura de Cores</h1>
+    <p>Digite o código hexadecimal da cor desejada:</p>
+    <!-- Campo de entrada para o código hexadecimal -->
+    <input type="text" id="hexInput" placeholder="#AABBCC" maxlength="7">
+    
+    <!-- Matriz de cores para arrastar (ou clicar) -->
+    <div class="color-matrix">
+      <!-- Cada swatch possui o atributo draggable e um data-color (sem o '#') -->
+      <div class="color-swatch" draggable="true" data-color="ff0000" style="background: #ff0000;"></div>
+      <div class="color-swatch" draggable="true" data-color="00ff00" style="background: #00ff00;"></div>
+      <div class="color-swatch" draggable="true" data-color="0000ff" style="background: #0000ff;"></div>
+      <div class="color-swatch" draggable="true" data-color="ffff00" style="background: #ffff00;"></div>
+      <div class="color-swatch" draggable="true" data-color="ff00ff" style="background: #ff00ff;"></div>
+      <div class="color-swatch" draggable="true" data-color="00ffff" style="background: #00ffff;"></div>
+      <div class="color-swatch" draggable="true" data-color="ffffff" style="background: #ffffff;"></div>
+      <div class="color-swatch" draggable="true" data-color="000000" style="background: #000000;"></div>
+      <div class="color-swatch" draggable="true" data-color="ffa500" style="background: #ffa500;"></div>
+      <div class="color-swatch" draggable="true" data-color="800080" style="background: #800080;"></div>
+      <div class="color-swatch" draggable="true" data-color="008000" style="background: #008000;"></div>
+      <div class="color-swatch" draggable="true" data-color="c0c0c0" style="background: #c0c0c0;"></div>
+    </div>
+    
+    <br>
+    <button id="mixButton">Calcular Mistura</button>
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    // Evento para calcular a mistura com base no valor do input
+    document.getElementById('mixButton').addEventListener('click', function() {
+      var hex = document.getElementById('hexInput').value.trim();
+      var resultDiv = document.getElementById('result');
+      
+      // Expressão regular para validar código hexadecimal de 6 dígitos (com ou sem #)
+      var hexRegex = /^#?([a-fA-F0-9]{6})$/;
+      if (!hexRegex.test(hex)) {
+        resultDiv.innerHTML = '<span style="color: #ff8080;">Por favor, insira um código hexadecimal válido (ex: #AABBCC).</span>';
+        return;
+      }
+      
+      // Remove o '#' caso esteja presente
+      if(hex.charAt(0) === '#') {
+        hex = hex.substring(1);
+      }
+      
+      // Extrai os valores R, G e B (de 0 a 255)
+      var r = parseInt(hex.substring(0,2), 16);
+      var g = parseInt(hex.substring(2,4), 16);
+      var b = parseInt(hex.substring(4,6), 16);
+      
+      // Caso a cor seja preta (#000000), orienta de forma específica
+      if(r === 0 && g === 0 && b === 0) {
+        resultDiv.innerHTML = '<span style="color: #ccc;">A cor desejada é preto. Geralmente, para obter preto, não se misturam gotas de cores primárias.</span>';
+        return;
+      }
+      
+      /* 
+        Para guiar a mistura, usaremos uma base padrão de 10 gotas totais.
+        Calculamos a proporção de cada cor com base na soma dos valores RGB:
+          - gotas de vermelho = arredondado de (r / (r + g + b)) * 10
+          - gotas de verde = arredondado de (g / (r + g + b)) * 10
+          - gotas de azul = total de gotas - (gotas de vermelho + gotas de verde)
+      */
+      var totalDrops = 10;
+      var sum = r + g + b;
+      var redDrops = Math.round((r / sum) * totalDrops);
+      var greenDrops = Math.round((g / sum) * totalDrops);
+      var blueDrops = totalDrops - redDrops - greenDrops;
+      
+      // Ajusta caso blueDrops esteja negativo (devido ao arredondamento)
+      if (blueDrops < 0) {
+        blueDrops = 0;
+      }
+      
+      // Se a soma das gotas for menor que totalDrops, adiciona as gotas faltantes à cor com maior valor
+      var dropsSum = redDrops + greenDrops + blueDrops;
+      if(dropsSum < totalDrops) {
+        var maxValue = Math.max(r, g, b);
+        if(maxValue === r) {
+          redDrops += totalDrops - dropsSum;
+        } else if(maxValue === g) {
+          greenDrops += totalDrops - dropsSum;
+        } else {
+          blueDrops += totalDrops - dropsSum;
+        }
+      }
+      
+      // Exibe o resultado com as instruções de mistura
+      resultDiv.innerHTML = 
+        '<p>Para obter a cor desejada <span>#' + hex.toUpperCase() + '</span>, misture:</p>' +
+        '<p><span>' + redDrops + '</span> gotas de <span style="color: red;">vermelho</span>, ' +
+        '<span>' + greenDrops + '</span> gotas de <span style="color: green;">verde</span> e ' +
+        '<span>' + blueDrops + '</span> gotas de <span style="color: blue;">azul</span>.</p>';
+    });
+    
+    // Implementa a funcionalidade de drag and drop para os swatches
+    const swatches = document.querySelectorAll('.color-swatch');
+    const hexInput = document.getElementById('hexInput');
+    
+    swatches.forEach(swatch => {
+      // Permite arrastar o swatch
+      swatch.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', swatch.dataset.color);
+      });
+      // Ao clicar, preenche o input
+      swatch.addEventListener('click', () => {
+        hexInput.value = "#" + swatch.dataset.color.toUpperCase();
+      });
+    });
+    
+    hexInput.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    
+    hexInput.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const color = e.dataTransfer.getData('text/plain');
+      hexInput.value = "#" + color.toUpperCase();
+    });
+  </script>
+</body>
+</html>
